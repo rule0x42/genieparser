@@ -184,8 +184,11 @@ class ShowRoute(ShowRouteSchema):
         # via 10.16.255.1, outside via 10.16.255.2, pod1001 via 10.16.255.3, pod1002
         p7 = re.compile(r'via\s+(?P<next_hop>\S+),\s+(?P<context_name>\S+)')
 
+        # D        10.0.0.0 255.192.0.0 is a summary, 0:19:52, Null0
+        p8 = re.compile(r'^(?P<code>\S+)\s+(?P<network>\S+)\s(?P<subnet>\S+)\sis\s+a\s+(?P<next_hop>\S+),\s(?P<date>\S+),\s+(?P<context_name>\S+)')
+
         # D 10.0.0.0 255.255.255.0 [90/30720] via 192.168.1.1, 0:19:52, inside
-        p8 = re.compile(
+        p8_1 = re.compile(
             r'^(?P<code>\S+)\s(?P<network>\S+)\s(?P<subnet>\S+)\s\[(?P<route_preference>[\d\/]+)\]'
             '\svia\s+(?P<next_hop>\S+),\s(?P<date>\S+),\s+(?P<context_name>\S+)')
 
@@ -262,8 +265,13 @@ class ShowRoute(ShowRouteSchema):
             elif line.startswith('D'):
                 """ EIGRP """
                 m = p8.match(line)
+                m_1 = p8_1.match(line)
                 if m:
                     groups = m.groupdict()
+                    next_hops = [{'route_preference': '', 'next_hop': groups['next_hop'], 'date': groups['date'], 'context_name': groups['context_name']}]
+                elif m_1:
+                    groups = m_1.groupdict()
+                    next_hops = [m_1.groupdict() for m_1 in p10.finditer(line)]
                 else:
                     m = p11.match(line)
                     groups = m.groupdict()
